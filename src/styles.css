@@ -18,6 +18,13 @@
   --surface-strong: rgba(255, 255, 255, 0.9);
   --line: rgba(23, 58, 64, 0.14);
   --inset-glint: rgba(255, 255, 255, 0.82);
+  --cat-1: #2a78d6;
+  --cat-2: #eb6834;
+  --cat-3: #1baf7a;
+  --cat-4: #eda100;
+  --cat-5: #e87ba4;
+  --cat-6: #008300;
+  --chart-grid: rgba(23, 58, 64, 0.1);
   --kicker: rgba(47, 106, 74, 0.9);
   --bg-base: #e7f3ec;
   --header-bg: rgba(251, 255, 248, 0.84);
@@ -63,6 +70,13 @@
 }
 
 .dark {
+  --cat-1: #3987e5;
+  --cat-2: #d95926;
+  --cat-3: #199e70;
+  --cat-4: #c98500;
+  --cat-5: #d55181;
+  --cat-6: #0ca30c;
+  --chart-grid: rgba(215, 236, 232, 0.12);
   --sea-ink: #d7ece8;
   --sea-ink-soft: #afcdc8;
   --lagoon: #60d7cf;
