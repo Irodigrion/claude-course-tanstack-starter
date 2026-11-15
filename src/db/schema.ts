@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { CURRENCIES, DEFAULT_CURRENCY, type Money } from "#/lib/money";
 
 export const categories = sqliteTable("categories", {
 	id: integer({ mode: "number" }).primaryKey({ autoIncrement: true }),
@@ -19,8 +20,9 @@ export const expenses = sqliteTable(
 		categoryId: integer("category_id")
 			.notNull()
 			.references(() => categories.id, { onDelete: "restrict" }),
-		/** Amount in grosze (PLN × 100) */
+		/** Money amount in the currency's minor unit; see `Money` in #/lib/money. */
 		amount: integer().notNull(),
+		currency: text({ enum: CURRENCIES }).notNull().default(DEFAULT_CURRENCY),
 		createdAt: integer("created_at", { mode: "timestamp" }).default(
 			sql`(unixepoch())`,
 		),
@@ -44,5 +46,26 @@ export const expensesRelations = relations(expenses, ({ one }) => ({
 
 export type Category = typeof categories.$inferSelect;
 export type NewCategory = typeof categories.$inferInsert;
-export type Expense = typeof expenses.$inferSelect;
-export type NewExpense = typeof expenses.$inferInsert;
+
+/** Raw rows: `amount` and `currency` are separate columns. */
+export type ExpenseRow = typeof expenses.$inferSelect;
+export type NewExpenseRow = typeof expenses.$inferInsert;
+
+/** Domain types: `amount` and `currency` combined into `Money`. */
+export type Expense = Omit<ExpenseRow, "amount" | "currency"> & {
+	amount: Money;
+};
+export type NewExpense = Omit<NewExpenseRow, "amount" | "currency"> & {
+	amount: Money;
+};
+
+export function toExpense({ amount, currency, ...rest }: ExpenseRow): Expense {
+	return { ...rest, amount: { amount, currency } };
+}
+
+export function toNewExpenseRow({
+	amount,
+	...rest
+}: NewExpense): NewExpenseRow {
+	return { ...rest, amount: amount.amount, currency: amount.currency };
+}

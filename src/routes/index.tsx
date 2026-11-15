@@ -7,7 +7,6 @@ import {
 } from "#/components/dashboard/charts";
 import {
 	filterExpenses,
-	formatMoney,
 	getCategory,
 	MONTH_NAMES,
 	monthlyTotalsByCategory,
@@ -15,6 +14,7 @@ import {
 	sumAmounts,
 	totalsByCategory,
 } from "#/lib/expenses";
+import { formatMoney, money } from "#/lib/money";
 
 type View = "month" | "year";
 
@@ -58,7 +58,9 @@ function Dashboard() {
 	const monthExpenses = filterExpenses(SAMPLE_EXPENSES, year, month);
 	const total = sumAmounts(periodExpenses);
 	const categoryTotals = totalsByCategory(periodExpenses);
-	const topCategory = [...categoryTotals].sort((a, b) => b.total - a.total)[0];
+	const topCategory = [...categoryTotals].sort(
+		(a, b) => b.total.amount - a.total.amount,
+	)[0];
 
 	const monthsWithData =
 		view === "year"
@@ -137,15 +139,24 @@ function Dashboard() {
 					label={view === "year" ? "Monthly average" : "Expenses recorded"}
 					value={
 						view === "year"
-							? formatMoney(monthsWithData ? total / monthsWithData : 0)
+							? formatMoney(
+									money(
+										monthsWithData
+											? Math.round(total.amount / monthsWithData)
+											: 0,
+										total.currency,
+									),
+								)
 							: String(periodExpenses.length)
 					}
 				/>
 				<StatTile
 					label="Top category"
-					value={topCategory.total > 0 ? topCategory.category.name : "–"}
+					value={topCategory.total.amount > 0 ? topCategory.category.name : "–"}
 					detail={
-						topCategory.total > 0 ? formatMoney(topCategory.total) : undefined
+						topCategory.total.amount > 0
+							? formatMoney(topCategory.total)
+							: undefined
 					}
 				/>
 			</section>
@@ -160,7 +171,7 @@ function Dashboard() {
 					</h2>
 					{view === "year" && <CategoryLegend totals={categoryTotals} />}
 				</div>
-				{total === 0 ? (
+				{total.amount === 0 ? (
 					<p className="m-0 py-10 text-center text-sm text-[var(--sea-ink-soft)]">
 						No expenses in {periodLabel}.
 					</p>

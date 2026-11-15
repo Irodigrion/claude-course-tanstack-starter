@@ -1,12 +1,8 @@
 import { useState } from "react";
-import {
-	type Category,
-	formatCompact,
-	formatMoney,
-	MONTH_NAMES,
-} from "#/lib/expenses";
+import { type Category, formatCompact, MONTH_NAMES } from "#/lib/expenses";
+import { formatMoney, type Money, sumMoney } from "#/lib/money";
 
-type CategoryTotals = { category: Category; total: number }[];
+type CategoryTotals = { category: Category; total: Money }[];
 
 /** Legend with each category's total for the period (the chart's values as text). */
 export function CategoryLegend({ totals }: { totals: CategoryTotals }) {
@@ -58,8 +54,8 @@ export function YearChart({
 	currentMonth?: number;
 }) {
 	const [hovered, setHovered] = useState<number | null>(null);
-	const monthTotals = months.map((m) => m.reduce((s, c) => s + c.total, 0));
-	const max = niceMax(Math.max(...monthTotals));
+	const monthTotals = months.map((m) => sumMoney(m.map((c) => c.total)));
+	const max = niceMax(Math.max(...monthTotals.map((t) => t.amount)));
 	const plotW = WIDTH - PAD.left - PAD.right;
 	const plotH = HEIGHT - PAD.top - PAD.bottom;
 	const band = plotW / 12;
@@ -97,7 +93,7 @@ export function YearChart({
 				))}
 				{months.map((categories, i) => {
 					const x = PAD.left + band * i + (band - BAR) / 2;
-					const visible = categories.filter((c) => c.total > 0);
+					const visible = categories.filter((c) => c.total.amount > 0);
 					let cursor = 0;
 					return (
 						// biome-ignore lint/a11y/noStaticElementInteractions: hover only reveals the tooltip; data is also in the legend totals
@@ -115,9 +111,9 @@ export function YearChart({
 								fill="transparent"
 							/>
 							{visible.map((c, idx) => {
-								const top = y(cursor + c.total);
+								const top = y(cursor + c.total.amount);
 								const bottom = y(cursor);
-								cursor += c.total;
+								cursor += c.total.amount;
 								const isTop = idx === visible.length - 1;
 								const h = Math.max(0, bottom - top - (isTop ? 0 : GAP));
 								return (
@@ -140,7 +136,7 @@ export function YearChart({
 					);
 				})}
 			</svg>
-			{hovered !== null && monthTotals[hovered] > 0 && (
+			{hovered !== null && monthTotals[hovered].amount > 0 && (
 				<div
 					className="pointer-events-none absolute top-2 z-10 min-w-44 rounded-xl border border-[var(--line)] bg-[var(--header-bg)] p-3 text-xs shadow-lg backdrop-blur"
 					style={
@@ -175,9 +171,9 @@ export function YearChart({
 
 /** Month view: horizontal bars of spending per category, largest first. */
 export function MonthChart({ totals }: { totals: CategoryTotals }) {
-	const sorted = [...totals].sort((a, b) => b.total - a.total);
-	const max = Math.max(...sorted.map((c) => c.total), 1);
-	const sum = sorted.reduce((s, c) => s + c.total, 0);
+	const sorted = [...totals].sort((a, b) => b.total.amount - a.total.amount);
+	const max = Math.max(...sorted.map((c) => c.total.amount), 1);
+	const sum = sorted.reduce((s, c) => s + c.total.amount, 0);
 
 	return (
 		<ul className="m-0 flex list-none flex-col gap-3 p-0">
@@ -197,15 +193,15 @@ export function MonthChart({ totals }: { totals: CategoryTotals }) {
 						<span
 							className="h-5 rounded-r-[4px]"
 							style={{
-								width: `calc(${(total / max) * 75}% )`,
-								minWidth: total > 0 ? 2 : 0,
+								width: `calc(${(total.amount / max) * 75}% )`,
+								minWidth: total.amount > 0 ? 2 : 0,
 								background: category.color,
 							}}
 						/>
 						<span className="whitespace-nowrap tabular-nums text-[var(--sea-ink)]">
 							{formatMoney(total)}
 							<span className="ml-1.5 text-xs text-[var(--sea-ink-soft)]">
-								{sum > 0 ? `${Math.round((total / sum) * 100)}%` : "–"}
+								{sum > 0 ? `${Math.round((total.amount / sum) * 100)}%` : "–"}
 							</span>
 						</span>
 					</span>
