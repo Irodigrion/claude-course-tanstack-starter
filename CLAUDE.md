@@ -2,6 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Business context
+
+The application is a **household budget tracker**: it records expenses and summarizes them per month and per year.
+
+- **Expense**: name, date (year, month, day), category, and amount. Amounts are stored as integers in the smallest currency unit (grosze), currency PLN.
+- **Category**: e.g. Food, Bills, Transport, Mortgage, Health, Other. Categories are managed separately from expenses (their own list/CRUD), and every expense belongs to exactly one category.
+- **Dashboard** (`src/routes/index.tsx`): switch between **Month** and **Year** view with previous/next navigation; the selection lives in URL search params (`?view=year&year=2026&month=11`, all optional, defaulting to month view of the current month).
+  - Summary tiles: total spent, monthly average (year) or number of expenses (month), and top category.
+  - Year view: stacked bar chart of expenses per category, month by month, with a legend showing each category's yearly total.
+  - Month view: horizontal bar chart of spending per category.
+  - Bottom: list of the most recent expenses for the selected month.
+
+Current state: the dashboard is an initial design driven by generated sample data (`SAMPLE_EXPENSES` in `src/lib/expenses.ts`, which also holds the domain types, category list and aggregation helpers). Persisting expenses/categories in the DB, the add-expense form and category management are not built yet. Category chart colors are the CSS tokens `--cat-1`…`--cat-6` in `src/styles.css` (light and `.dark` values, validated for color-blind safety); assign them to categories in fixed order and never reuse them for anything else.
+
 ## Commands
 
 ```bash
