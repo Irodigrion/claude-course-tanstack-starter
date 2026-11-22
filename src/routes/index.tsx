@@ -1,3 +1,4 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
@@ -7,14 +8,14 @@ import {
 } from "#/components/dashboard/charts";
 import {
 	filterExpenses,
-	getCategory,
 	MONTH_NAMES,
 	monthlyTotalsByCategory,
-	SAMPLE_EXPENSES,
 	sumAmounts,
 	totalsByCategory,
+	withChartColors,
 } from "#/lib/expenses";
 import { formatMoney, money } from "#/lib/money";
+import { categoriesQuery, yearExpensesQuery } from "#/server/budget";
 
 type View = "month" | "year";
 
@@ -39,6 +40,16 @@ export const Route = createFileRoute("/")({
 					: undefined,
 		};
 	},
+	// Only the year affects which data is loaded; month view filters the
+	// year's expenses on the client.
+	loaderDeps: ({ search }) => ({
+		year: search.year ?? new Date().getFullYear(),
+	}),
+	loader: ({ context: { queryClient }, deps: { year } }) =>
+		Promise.all([
+			queryClient.ensureQueryData(categoriesQuery()),
+			queryClient.ensureQueryData(yearExpensesQuery(year)),
+		]),
 	component: Dashboard,
 });
 
@@ -51,16 +62,19 @@ function Dashboard() {
 	const year = search.year ?? now.getFullYear();
 	const month = search.month ?? now.getMonth() + 1;
 
+	const { data: rawCategories } = useSuspenseQuery(categoriesQuery());
+	const { data: yearExpenses } = useSuspenseQuery(yearExpensesQuery(year));
+	const categories = withChartColors(rawCategories);
+	const categoryById = new Map(categories.map((c) => [c.id, c]));
+
 	const periodExpenses =
-		view === "year"
-			? filterExpenses(SAMPLE_EXPENSES, year)
-			: filterExpenses(SAMPLE_EXPENSES, year, month);
-	const monthExpenses = filterExpenses(SAMPLE_EXPENSES, year, month);
+		view === "year" ? yearExpenses : filterExpenses(yearExpenses, year, month);
+	const monthExpenses = filterExpenses(yearExpenses, year, month);
 	const total = sumAmounts(periodExpenses);
-	const categoryTotals = totalsByCategory(periodExpenses);
+	const categoryTotals = totalsByCategory(periodExpenses, categories);
 	const topCategory = [...categoryTotals].sort(
 		(a, b) => b.total.amount - a.total.amount,
-	)[0];
+	)[0] as (typeof categoryTotals)[number] | undefined;
 
 	const monthsWithData =
 		view === "year"
@@ -152,9 +166,13 @@ function Dashboard() {
 				/>
 				<StatTile
 					label="Top category"
-					value={topCategory.total.amount > 0 ? topCategory.category.name : "–"}
+					value={
+						topCategory && topCategory.total.amount > 0
+							? topCategory.category.name
+							: "–"
+					}
 					detail={
-						topCategory.total.amount > 0
+						topCategory && topCategory.total.amount > 0
 							? formatMoney(topCategory.total)
 							: undefined
 					}
@@ -177,7 +195,7 @@ function Dashboard() {
 					</p>
 				) : view === "year" ? (
 					<YearChart
-						months={monthlyTotalsByCategory(SAMPLE_EXPENSES, year)}
+						months={monthlyTotalsByCategory(yearExpenses, year, categories)}
 						currentMonth={month}
 					/>
 				) : (
@@ -197,7 +215,7 @@ function Dashboard() {
 				) : (
 					<ul className="m-0 list-none divide-y divide-[var(--line)] p-0">
 						{monthExpenses.slice(0, RECENT_LIMIT).map((expense) => {
-							const category = getCategory(expense.categoryId);
+							const category = categoryById.get(expense.categoryId);
 							return (
 								<li
 									key={expense.id}
@@ -205,14 +223,14 @@ function Dashboard() {
 								>
 									<span
 										className="h-2.5 w-2.5 shrink-0 rounded-full"
-										style={{ background: category.color }}
+										style={{ background: category?.color }}
 									/>
 									<span className="min-w-0 flex-1">
 										<span className="block font-semibold text-[var(--sea-ink)]">
 											{expense.name}
 										</span>
 										<span className="block text-xs text-[var(--sea-ink-soft)]">
-											{category.name} · {expense.date}
+											{category?.name ?? "Unknown"} · {expense.date}
 										</span>
 									</span>
 									<span className="tabular-nums font-semibold text-[var(--sea-ink)]">
