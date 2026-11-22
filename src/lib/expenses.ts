@@ -1,6 +1,14 @@
 // Domain types, sample data and aggregation helpers for the household budget.
 // Sample data is a placeholder until expenses are stored in the database.
 
+import {
+	type Currency,
+	DEFAULT_CURRENCY,
+	type Money,
+	money,
+	sumMoney,
+} from "./money";
+
 export interface Category {
 	id: string;
 	name: string;
@@ -14,8 +22,7 @@ export interface Expense {
 	/** ISO date, YYYY-MM-DD */
 	date: string;
 	categoryId: string;
-	/** Amount in the smallest currency unit (grosze/cents) to avoid float errors. */
-	amount: number;
+	amount: Money;
 }
 
 export const CATEGORIES: Category[] = [
@@ -42,16 +49,7 @@ export const MONTH_NAMES = [
 	"December",
 ];
 
-const moneyFormat = new Intl.NumberFormat("en-US", {
-	style: "currency",
-	currency: "PLN",
-	maximumFractionDigits: 0,
-});
-
-export function formatMoney(amount: number) {
-	return moneyFormat.format(amount / 100);
-}
-
+/** Compact axis label for an amount in minor units (e.g. 1500 PLN -> "1.5K"). */
 export function formatCompact(amount: number) {
 	const value = amount / 100;
 	return value >= 1000 ? `${Math.round(value / 100) / 10}K` : `${value}`;
@@ -76,8 +74,14 @@ export function filterExpenses(
 	return expenses.filter((e) => e.date.startsWith(prefix));
 }
 
-export function sumAmounts(expenses: Expense[]) {
-	return expenses.reduce((total, e) => total + e.amount, 0);
+export function sumAmounts(
+	expenses: Expense[],
+	currency: Currency = DEFAULT_CURRENCY,
+): Money {
+	return sumMoney(
+		expenses.map((e) => e.amount),
+		currency,
+	);
 }
 
 /** Totals per category id, in CATEGORIES order. */
@@ -170,7 +174,7 @@ function generateSampleExpenses(years: number[], lastDate: Date): Expense[] {
 						name: item.names[Math.floor(random() * item.names.length)],
 						date: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
 						categoryId,
-						amount,
+						amount: money(amount),
 					});
 				}
 			}
