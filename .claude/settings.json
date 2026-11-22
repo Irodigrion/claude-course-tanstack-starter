@@ -3,7 +3,6 @@
     "allow": [
       "Bash(npm run *)",
       "Bash(git status)",
-      "Bash(git commit *)",
       "Bash(git diff *)",
       "Read(src/**)",
       "Edit(src/**)",
@@ -11,7 +10,8 @@
       "Bash(* --help *)"
     ],
     "ask": [
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git commit *)"
     ],
     "deny": [
       "Read(.env*)",
