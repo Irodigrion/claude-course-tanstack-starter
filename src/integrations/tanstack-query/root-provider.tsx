@@ -1,34 +1,14 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { QueryClient } from "@tanstack/react-query";
 
-let context:
-	| {
-			queryClient: QueryClient;
-	  }
-	| undefined;
-
+/**
+ * Router context with a fresh QueryClient. Called once per router: on the
+ * server that means per request, so cached data is never shared between users.
+ */
 export function getContext() {
-	if (context) {
-		return context;
-	}
-
-	const queryClient = new QueryClient();
-
-	context = {
-		queryClient,
-	};
-
-	return context;
-}
-
-export default function TanStackQueryProvider({
-	children,
-}: {
-	children: ReactNode;
-}) {
-	const { queryClient } = getContext();
-
-	return (
-		<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-	);
+	const queryClient = new QueryClient({
+		// Data prefetched during SSR stays fresh briefly instead of being
+		// refetched immediately after hydration.
+		defaultOptions: { queries: { staleTime: 30_000 } },
+	});
+	return { queryClient };
 }

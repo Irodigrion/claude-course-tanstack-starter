@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { type Category, formatCompact, MONTH_NAMES } from "#/lib/expenses";
+import { type ChartCategory, formatCompact, MONTH_NAMES } from "#/lib/expenses";
 import { formatMoney, type Money, sumMoney } from "#/lib/money";
 
-type CategoryTotals = { category: Category; total: Money }[];
+type CategoryTotals = { category: ChartCategory; total: Money }[];
 
 /** Legend with each category's total for the period (the chart's values as text). */
 export function CategoryLegend({ totals }: { totals: CategoryTotals }) {
